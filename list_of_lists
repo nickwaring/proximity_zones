@@ -1,0 +1,24 @@
+device1 = ["Nick", "T", "El"]
+ignore1 = ["zone2", "zone4"]
+device2 = ["T", "El"]
+ignore2 = ["zone3", "zone4"]
+device3 = ["Nick"]
+ignore3 = ["zone1", "zone2"]
+device4 = ["T"]
+ignore4 = ["zone1"]
+
+device_list = []
+
+device_list.append(["zone1",device1,ignore1])
+device_list.append(["zone2",device2,ignore2])
+device_list.append(["zone3",device3,ignore3])
+device_list.append(["zone4",device4,ignore4])
+
+for zone in range(len(device_list[0])):
+    print("zone: " + device_list[zone][0])
+    
+    for device in device_list[zone][1]:
+        print("device: " + device)
+
+    for ignore in device_list[zone][2]:
+        print("ignore: " + ignore)
