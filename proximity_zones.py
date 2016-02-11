@@ -103,17 +103,16 @@ def setup(hass, config):  # pylint: disable=too-many-locals,too-many-statements
 
         proximities.append(proximity)
         _LOGGER.info('proximity_zones_info added %s', entity_id)
+    
+        # main command to monitor proximity of devices
+        _LOGGER.info('proximity_zones_info track state change for devices: %s for proximity_zone %s', proximity.proximity_devices, proximity_zone)
+        track_state_change(hass, proximity.proximity_devices,
+                           proximity.check_proximity_state_change)
 
     if not proximities:
         _LOGGER.error("No proximities added")
         return False
         
-    # main command to monitor proximity of devices
-    for proxi in proximities:
-        _LOGGER.info('proximity_zones_info track state change for devices: %s for proximity_zone %s', proxi.proximity_devices, proxi)
-        track_state_change(hass, proxi.proximity_devices,
-                           proxi.check_proximity_state_change)
-
     # Tells the bootstrapper that the component was successfully initialized
     return True
 
@@ -168,7 +167,7 @@ class Proximity(Entity):  # pylint: disable=too-many-instance-attributes
         # check for devices in the monitored zone
         for device in self.proximity_devices:
             device_state = self.hass.states.get(device)
-            _LOGGER.info('proximity_zones_info prox_zone %s: check device %s', self.proximity_zone, device_state)
+            _LOGGER.info('proximity_zones_info prox_zone %s: check device %s', self.proximity_zone, device_state.name)
             
             if 'latitude' not in device_state.attributes:
                 continue
@@ -183,7 +182,7 @@ class Proximity(Entity):  # pylint: disable=too-many-instance-attributes
                                     device_state_lat,
                                     device_state_lon):
                     devices_to_calculate = True
-                    _LOGGER.info('proximity_zones_info prox_zone %s: device %s niet in ignored_zone %s', self.proximity_zone, device_state, ignored_zone_state)
+                    _LOGGER.info('proximity_zones_info prox_zone %s: device %s niet in ignored_zone %s', self.proximity_zone, device_state.name, ignored_zone_state.name)
 
             # check the location of all devices
             if zone.in_zone(zone_state,
@@ -193,16 +192,7 @@ class Proximity(Entity):  # pylint: disable=too-many-instance-attributes
                 if devices_in_zone != '':
                     devices_in_zone = devices_in_zone + ', '
                 devices_in_zone = devices_in_zone + device_friendly
-                _LOGGER.info('proximity_zones_info prox_zone %s: device %s in monitored_zone %s', self.proximity_zone, device_state, zone_state)
-
-        # no-one to track so reset the entity
-        if not devices_to_calculate:
-            self.dist_to = 'not set'
-            self.dir_of_travel = 'not set'
-            self.nearest = 'not set'
-            self.update_ha_state()
-            _LOGGER.info('proximity_zones_info prox_zone %s: geen toestellen met coordinaten of alles in een ignored_zone')
-            return
+                _LOGGER.info('proximity_zones_info prox_zone %s: device %s in monitored_zone %s', self.proximity_zone, device_state.name, zone_state.name)
 
         # at least one device is in the monitored zone so update the entity
         if devices_in_zone != '':
@@ -210,12 +200,21 @@ class Proximity(Entity):  # pylint: disable=too-many-instance-attributes
             self.dir_of_travel = 'arrived'
             self.nearest = devices_in_zone
             self.update_ha_state()
-            _LOGGER.info('proximity_zones_info prox_zone %s: device(s) %s in monitored_zone %s', self.proximity_zone, devices_in_zone, zone_state)
+            _LOGGER.info('proximity_zones_info prox_zone %s: device(s) %s in monitored_zone %s', self.proximity_zone, devices_in_zone, zone_state.name)
+            return
+
+        # no-one to track so reset the entity
+        if not devices_to_calculate:
+            self.dist_to = 'not set'
+            self.dir_of_travel = 'not set'
+            self.nearest = 'not set'
+            self.update_ha_state()
+            _LOGGER.info('proximity_zones_info prox_zone %s: geen toestellen met coordinaten of alles in een ignored_zone', zone_state.name)
             return
 
         # we can't check proximity because latitude and longitude don't exist
         if 'latitude' not in new_state.attributes:
-            _LOGGER.info('proximity_zones_info prox_zone %s: device %s heeft geen coordinaten', self.proximity_zone, new_state)
+            _LOGGER.info('proximity_zones_info prox_zone %s: device %s heeft geen coordinaten', self.proximity_zone, new_state.name)
             return
 
         # collect distances to the zone for all devices
@@ -223,11 +222,11 @@ class Proximity(Entity):  # pylint: disable=too-many-instance-attributes
         for device in self.proximity_devices:
             # ignore devices in an ignored zone
             device_state = self.hass.states.get(device)
-            _LOGGER.info('proximity_zones_info prox_zone %s: check afstand device %s', self.proximity_zone, device_state)
+            _LOGGER.info('proximity_zones_info prox_zone %s: check afstand device %s', self.proximity_zone, device_state.name)
 
             # ignore devices if proximity cannot be calculated
             if 'latitude' not in device_state.attributes:
-                _LOGGER.info('proximity_zones_info prox_zone %s: device %s heeft geen coordinaten', self.proximity_zone, device_state)
+                _LOGGER.info('proximity_zones_info prox_zone %s: device %s heeft geen coordinaten', self.proximity_zone, device_state.name)
                 continue
 
             device_state_lat = device_state.attributes['latitude']
@@ -241,7 +240,7 @@ class Proximity(Entity):  # pylint: disable=too-many-instance-attributes
                                 device_state_lat,
                                 device_state_lon):
                     device_in_ignored_zone = True
-                    _LOGGER.info('proximity_zones_info prox_zone %s: device %s in ignored_zone %s', self.proximity_zone, device_state, ignored_zone_state)
+                    _LOGGER.info('proximity_zones_info prox_zone %s: device %s in ignored_zone %s', self.proximity_zone, device_state.name, ignored_zone_state.name)
                     continue
             if device_in_ignored_zone:
                 continue
@@ -266,7 +265,7 @@ class Proximity(Entity):  # pylint: disable=too-many-instance-attributes
 
         # if the closest device is one of the other devices
         if closest_device != entity:
-            _LOGGER.info('proximity_zones_info prox_zone %s: device %s is closest to monitored_zone %s', self.proximity_zone, closest_device, zone_state)
+            _LOGGER.info('proximity_zones_info prox_zone %s: device %s is closest to monitored_zone %s', self.proximity_zone, closest_device, zone_state.name)
             self.dist_to = round(distances_to_zone[closest_device])
             self.dir_of_travel = 'unknown'
             device_state = self.hass.states.get(closest_device)
@@ -277,7 +276,7 @@ class Proximity(Entity):  # pylint: disable=too-many-instance-attributes
         # stop if we cannot calculate the direction of travel (i.e. we don't
         # have a previous state and a current LAT and LONG)
         if old_state is None or 'latitude' not in old_state.attributes:
-            _LOGGER.info('proximity_zones_info prox_zone %s: device %s is closest to monitored_zone %s but has no old coordinates', self.proximity_zone, new_state, zone_state)
+            _LOGGER.info('proximity_zones_info prox_zone %s: device %s is closest to monitored_zone %s but has no old coordinates', self.proximity_zone, new_state.name, zone_state.name)
             self.dist_to = round(distances_to_zone[entity])
             self.dir_of_travel = 'unknown'
             self.nearest = entity_name
@@ -305,7 +304,7 @@ class Proximity(Entity):  # pylint: disable=too-many-instance-attributes
             direction_of_travel = 'stationary'
 
         # update the proximity entity
-        _LOGGER.info('proximity_zones_info prox_zone %s: device %s is closest to monitored_zone %s', self.proximity_zone, new_state, zone_state)
+        _LOGGER.info('proximity_zones_info prox_zone %s: device %s is closest to monitored_zone %s', self.proximity_zone, new_state.name, zone_state.name)
         self.dist_to = round(dist_to_zone)
         self.dir_of_travel = direction_of_travel
         self.nearest = entity_name
