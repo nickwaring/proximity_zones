@@ -406,4 +406,3 @@ class Proximity(Entity):  # pylint: disable=too-many-instance-attributes
         device_state = self.hass.states.get(closest_device)
         self.nearest = device_state.name
         self.update_ha_state()
-        _LOGGER.info('%s: proximity calculation complete', entity_name)
