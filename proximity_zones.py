@@ -47,6 +47,7 @@ ATTR_FRIENDLY_NAME = 'friendly_name'
 # Shortcut for the logger
 _LOGGER = logging.getLogger(__name__)
 
+
 def setup(hass, config):  # pylint: disable=too-many-locals,too-many-statements
     """ get the zones and offsets from configuration.yaml"""
 
