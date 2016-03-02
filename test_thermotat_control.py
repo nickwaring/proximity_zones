@@ -22,27 +22,6 @@ class TestThermostatControl:
     def setup_method(self, method):
         self.hass = get_test_home_assistant()
 
-        #not changed - what does this do?
-        self.yaml_devices = self.hass.config.path(device_tracker.YAML_DEVICES)
-        
-        dev_id = 'test1'
-        entity_id = thermostat_control.ENTITY_ID_FORMAT.format(dev_id)
-        friendly_name = 'test1'
-        picture = 'http://placehold.it/200x200'
-
-        #not sure what attributes I need to add to this? 
-        device = thermostat_control.Device(
-            self.hass, 
-            timedelta(seconds=180), 
-            0, 
-            True, 
-            dev_id, 
-            None,
-            friendly_name, 
-            picture, 
-            away_hide=True)
-?        proximity.update_config(self.yaml_devices, dev_id, device)
-        
         self.hass.states.set(
             'proximity.test1', '60',
             {
@@ -50,33 +29,11 @@ class TestThermostatControl:
                 'friendly_name': 'test1',
                 'nearest': 'Nick',
                 'unit_of_measurement': 'km'
-            }
-            'thermostat.test1', '23.5',
-            {
-                'away_mode': 'off',
-                'current_operation': 'idle',
-                'current_temperature': 19,
-                'fan': 'off',
-                'friendly_name': 'test1',
-                'humidity': 38,
-                'max_temp': 35,
-                'min_temp': 16,
-                'mode': 'heat',
-                'target_humidity': 35,
-                'target_temp_high': 16,
-                'target_temp_low': 16,
-                'temperature': 23.5,
-                'unit_of_measurement': '°C'
             })
                 
     def teardown_method(self, method):
         """ Stop down stuff we started. """
         self.hass.stop()
-        
-        try:
-?            os.remove(self.hass.config.path(thermostat_control.YAML_DEVICES))
-        except FileNotFoundError:
-            pass
         
     def test_thermostat_control(self):
         assert thermostat_control.setup(self.hass, {
