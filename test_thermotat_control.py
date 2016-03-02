@@ -29,7 +29,24 @@ class TestThermostatControl:
                 'friendly_name': 'test1',
                 'nearest': 'Nick',
                 'unit_of_measurement': 'km'
-            })
+            },
+            'thermostat.test1', '23.5',
+-            {
+-                'away_mode': 'off',
+-                'current_operation': 'idle',
+-                'current_temperature': 19,
+-                'fan': 'off',
+-                'friendly_name': 'test1',
+-                'humidity': 38,
+-                'max_temp': 35,
+-                'min_temp': 16,
+-                'mode': 'heat',
+-                'target_humidity': 35,
+-                'target_temp_high': 16,
+-                'target_temp_low': 16,
+-                'temperature': 23.5,
+-                'unit_of_measurement': '°C'
+             })
                 
     def teardown_method(self, method):
         """ Stop down stuff we started. """
