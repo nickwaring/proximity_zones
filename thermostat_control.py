@@ -22,15 +22,14 @@ thermostat_control:
 """
 
 import logging
+from datetime import timedelta
+import time
 from homeassistant.helpers.event import track_state_change
 from homeassistant.helpers.event import track_time_change
 from homeassistant.helpers.event import track_point_in_time
 from homeassistant.helpers.entity import Entity
-from homeassistant.components import zone
-from homeassistant.const import CONF_NAME
 import homeassistant.util.dt as dt_util
-from datetime import timedelta
-import time
+
 
 DEPENDENCIES = ['thermostat', 'proximity']
 
@@ -58,7 +57,10 @@ ATTR_AWAY = 'Away_mode'
 # Shortcut for the logger
 _LOGGER = logging.getLogger(__name__)
 
-def setup(hass, config):  # pylint: disable=too-many-locals,too-many-statements
+
+def setup(hass, config):
+    # pylint: disable=too-many-locals,too-many-return-statements,
+    # pylint: disable=too-many-statements
     """ get the zones and offsets from configuration.yaml"""
 
     thermostat_controls = []
@@ -118,15 +120,15 @@ def setup(hass, config):  # pylint: disable=too-many-locals,too-many-statements
         manual_override = 'not set'
         manual_override_end = 'not set'
 
-        thermostat_control = Thermostat_control(hass, thermostat_entity,
-                                                dist_offset, away_distance,
-                                                control_schedule,
-                                                schedule_start, schedule_temp,
-                                                set_temp, friendly_name,
-                                                offset_temp, manual_override,
-                                                manual_override_end,
-                                                schedule_next, away_mode,
-                                                proximity_zone)
+        thermostat_control = Thermostatcontrol(hass, thermostat_entity,
+                                               dist_offset, away_distance,
+                                               control_schedule,
+                                               schedule_start, schedule_temp,
+                                               set_temp, friendly_name,
+                                               offset_temp, manual_override,
+                                               manual_override_end,
+                                               schedule_next, away_mode,
+                                               proximity_zone)
         thermostat_control.entity_id = entity_id
         thermostat_control.update_ha_state()
         thermostat_controls.append(thermostat_control)
@@ -143,12 +145,12 @@ def setup(hass, config):  # pylint: disable=too-many-locals,too-many-statements
             each_time = dt_util.parse_time_str(each_time)
             if each_time is None:
                 _LOGGER.error('error reading time schedule: %s',
-                    control_location)
+                              control_location)
                 continue
             track_time_change(hass, thermostat_control.check_time_change,
                               hour=each_time.hour,
                               minute=each_time.minute,
-							  second=each_time.second)
+                              second=each_time.second)
             _LOGGER.error('time trigger added: time:%s hour:%s minute:%s',
                           each_time, each_time.hour, each_time.minute)
 
@@ -164,9 +166,11 @@ def setup(hass, config):  # pylint: disable=too-many-locals,too-many-statements
     # Tells the bootstrapper that the component was successfully initialized
     return True
 
-class Thermostat_control(Entity):
+
+class Thermostatcontrol(Entity):
+    # pylint: disable=too-many-branches,too-many-statements,too-many-locals
     # pylint: disable=too-many-instance-attributes
-    # Represents a Proximity in Home Assistant.
+    """ Represents a Proximity in Home Assistant"""
     def __init__(self, hass, thermostat_entity, dist_offset, away_distance,
                  control_schedule, schedule_start, schedule_temp, set_temp,
                  friendly_name, offset_temp, manual_override,
@@ -215,7 +219,7 @@ class Thermostat_control(Entity):
     def check_proximity_change(self, entity, old_state, new_state):
         # pylint: disable=too-many-branches,too-many-statements,too-many-locals
         """ Function to handle a change in proximity """
-        
+
         # proximity is not set
         if new_state.state == 'not set':
             return
@@ -230,7 +234,8 @@ class Thermostat_control(Entity):
             self.update_ha_state()
             return
 
-        self.offset_temp = round(int(new_state.state) * self.dist_offset, 1) * -1
+        self.offset_temp = (round(int(new_state.state) *
+                                  self.dist_offset, 1) * -1)
 
         # proximity is greater than distance to away
         if int(new_state.state) > int(self.away_distance):
@@ -238,8 +243,8 @@ class Thermostat_control(Entity):
             self.update_ha_state()
             # =========SET THERMOSTAT TO AWAY
             # =========SET THERMOSTAT TEMP
-            _LOGGER.info('proximity set_thermostat_away: distance:%s offset:%s'
-                         , new_state.state, self.offset_temp)
+            _LOGGER.info('proximity set_thermostat_away: distance:%s '
+                         'offset:%s', new_state.state, self.offset_temp)
             return
 
         # proximity is 0 therefore offset is 0
@@ -250,8 +255,8 @@ class Thermostat_control(Entity):
             self.update_ha_state()
             # ========SET THERMOSTAT TO HOME
             # ========SET THERMOSTAT TEMP
-            _LOGGER.info('proximity set_thermostat_temp: distance:%s offset:%s'
-                         , new_state.state, self.offset_temp)
+            _LOGGER.info('proximity set_thermostat_temp: distance:%s '
+                         'offset:%s', new_state.state, self.offset_temp)
             return
 
         # set the temperature
@@ -269,13 +274,14 @@ class Thermostat_control(Entity):
         # pylint: disable=too-many-branches,too-many-statements,too-many-locals
         """ Function to handle a sheduled temperature change """
 
-        now_time = (str(trigger_time.hour).zfill(2) + ':'
-                           + str(trigger_time.minute).zfill(2))
+        now_time = (str(trigger_time.hour).zfill(2) + ':' +
+                    str(trigger_time.minute).zfill(2))
 
         if now_time not in self.control_schedule:
             _LOGGER.info('time: trigger not found in schedule:%s',
-                         each_entry)
-            _LOGGER.info('schedule change: no action: time not found in schedule')
+                         trigger_time)
+            _LOGGER.info('schedule change: no action: time not found '
+                         'in schedule')
             return
 
         self.schedule_temp = self.control_schedule[now_time]
@@ -283,17 +289,16 @@ class Thermostat_control(Entity):
 
         # get the next schedule change time
         count_previous = -10000000
-        count_next = 10000000
-        now_time = time.mktime(time.strptime(now_time, "%H:%M"))        
+        now_time = time.mktime(time.strptime(now_time, "%H:%M"))
         for each_entry in self.control_schedule:
             compare_time = time.mktime(time.strptime(each_entry, "%H:%M"))
             time_diff = now_time - compare_time
-            #_LOGGER.info('time_diff: %s', time_diff)
+            # _LOGGER.info('time_diff: %s', time_diff)
 
             if time_diff > count_previous and time_diff < 0:
                 count_previous = time_diff
                 schedule_next = each_entry
-                #_LOGGER.info('time: previous:%s', schedule_next)
+                # _LOGGER.info('time: previous:%s', schedule_next)
         _LOGGER.info('time: closest next:%s', schedule_next)
 
         self.schedule_next = schedule_next
@@ -339,12 +344,14 @@ class Thermostat_control(Entity):
         # state change triggered by thermostat_control proximity
         if float(new_state.state) == (float(self.schedule_temp) +
                                       float(self.offset_temp)):
-            _LOGGER.info('thermostat change: no action: change triggered by thermostat_control')
+            _LOGGER.info('thermostat change: no action: change triggered by '
+                         'thermostat_control')
             return
 
         # state change triggered by thermostat_control schedule
         if new_state.state == self.schedule_temp:
-            _LOGGER.info('thermostat change: no action: change triggered by thermostat_control')
+            _LOGGER.info('thermostat change: no action: change triggered by '
+                         'thermostat_control')
             return
 
         # setup the thermostat trigger to reset back after duration
@@ -355,15 +362,13 @@ class Thermostat_control(Entity):
 
         # manual thermostat change overrides all settings
         reset_time = str(reset_time.hour) + ':' + str(reset_time.minute)
-        #trigger_time = (str(dt_util.now().hour).zfill(2) + ':'
-        #                + str(dt_util.now().minute).zfill(2))
         self.manual_override_end = reset_time
 
         self.manual_override = 'on'
         self.away_mode = 'off'
         self.set_temp = new_state.state
         self.update_ha_state()
-        
+
         # thermostat change not required as manually set
         _LOGGER.info('thermostat change complete')
 
@@ -384,7 +389,8 @@ class Thermostat_control(Entity):
         _LOGGER.info('override reset complete')
 
     def check_initial_state(self):
-        # get the closest time
+        # pylint: disable=too-many-branches,too-many-statements,too-many-locals
+        """ Function to populate entity on startup """
         now_time = str(dt_util.now().hour) + ':' + str(dt_util.now().minute)
         now_time = time.mktime(time.strptime(now_time, "%H:%M"))
 
@@ -393,16 +399,16 @@ class Thermostat_control(Entity):
         for each_entry in self.control_schedule:
             compare_time = time.mktime(time.strptime(each_entry, "%H:%M"))
             time_diff = now_time - compare_time
-            #_LOGGER.info('time_diff: %s', time_diff)
+            # _LOGGER.info('time_diff: %s', time_diff)
 
             if time_diff < count_next and time_diff > 0:
                 count_next = time_diff
                 schedule_previous = each_entry
-                #_LOGGER.info('time: next:%s', schedule_previous)
+                # _LOGGER.info('time: next:%s', schedule_previous)
             if time_diff > count_previous and time_diff < 0:
                 count_previous = time_diff
                 schedule_next = each_entry
-                #_LOGGER.info('time: previous:%s', schedule_next)
+                # _LOGGER.info('time: previous:%s', schedule_next)
         _LOGGER.info('time: closest next:%s', schedule_next)
         _LOGGER.info('time: closest previous:%s', schedule_previous)
 
