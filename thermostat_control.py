@@ -71,16 +71,23 @@ def setup(hass, config):
     for control_location, control_config in config[DOMAIN].items():
         if 'thermostat' not in control_config:
             _LOGGER.error('no thermostat in config')
-            return False
+            continue
 
         if 'schedule' not in control_config:
             _LOGGER.error('no time schedule in config')
-            return False
+            continue
 
         thermostat_entity = 'thermostat.' + control_config.get('thermostat')
         if thermostat_entity not in hass.states.entity_ids('thermostat'):
             _LOGGER.error('thermostat_entity not found')
-            return
+            continue
+
+        proximity_zone = 'proximity.' + control_config.get('proximity_zone',
+                                                           DEFAULT_PROX_ZONE)
+        if proximity_zone not in hass.states.entity_ids('proximity'):
+            _LOGGER.error('proximity_entity not found')
+            continue
+        _LOGGER.error('proximity_zone: %s', proximity_zone)
 
         state = hass.states.get(thermostat_entity)
         thermostat_friendly_name = (state.name).lower()
@@ -91,13 +98,6 @@ def setup(hass, config):
 
         away_distance = control_config.get('away_distance', DEFAULT_AWAY)
         _LOGGER.error('away_distance: %s', away_distance)
-
-        proximity_zone = 'proximity.' + control_config.get('proximity_zone',
-                                                           DEFAULT_PROX_ZONE)
-        if proximity_zone not in hass.states.entity_ids('proximity'):
-            _LOGGER.error('proximity_entity not found')
-            return
-        _LOGGER.error('proximity_zone: %s', proximity_zone)
 
         entity_id = DOMAIN + '.' + control_location
         _LOGGER.error('entity_id: %s', entity_id)
@@ -110,24 +110,10 @@ def setup(hass, config):
             for each_time in each_entry:
                 control_schedule[each_time] = each_entry.get(each_time)
 
-        # set the default values
-        schedule_start = 'not set'
-        schedule_next = 'not set'
-        schedule_temp = 'not set'
-        away_mode = 'not set'
-        set_temp = 'not set'
-        offset_temp = 0
-        manual_override = 'not set'
-        manual_override_end = 'not set'
-
         thermostat_control = Thermostatcontrol(hass, thermostat_entity,
                                                dist_offset, away_distance,
                                                control_schedule,
-                                               schedule_start, schedule_temp,
-                                               set_temp, friendly_name,
-                                               offset_temp, manual_override,
-                                               manual_override_end,
-                                               schedule_next, away_mode,
+                                               friendly_name,
                                                proximity_zone)
         thermostat_control.entity_id = entity_id
         thermostat_control.update_ha_state()
@@ -172,10 +158,7 @@ class Thermostatcontrol(Entity):
     # pylint: disable=too-many-instance-attributes
     """ Represents a Proximity in Home Assistant"""
     def __init__(self, hass, thermostat_entity, dist_offset, away_distance,
-                 control_schedule, schedule_start, schedule_temp, set_temp,
-                 friendly_name, offset_temp, manual_override,
-                 manual_override_end, schedule_next, away_mode,
-                 proximity_zone):
+                 control_schedule, friendly_name, proximity_zone):
         # pylint: disable=too-many-arguments
         self.hass = hass
         self.control_schedule = control_schedule
@@ -183,15 +166,18 @@ class Thermostatcontrol(Entity):
         self.dist_offset = dist_offset
         self.away_distance = away_distance
         self.friendly_name = friendly_name
-        self.offset_temp = offset_temp
-        self.schedule_start = schedule_start
-        self.schedule_next = schedule_next
-        self.schedule_temp = schedule_temp
-        self.manual_override = manual_override
-        self.manual_override_end = manual_override_end
-        self.away_mode = away_mode
-        self.set_temp = set_temp
         self.proximity_zone = proximity_zone
+        # set the default values
+        self.schedule_start = 'not set'
+        self.schedule_next = 'not set'
+        self.schedule_temp = 'not set'
+        self.away_mode = 'not set'
+        self.set_temp = 'not set'
+        self.offset_temp = 0
+        self.manual_override = 'not set'
+        self.manual_override_end = 'not set'
+
+        
 
     @property
     def state(self):
