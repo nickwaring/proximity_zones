@@ -3,10 +3,9 @@ custom_components.temperature_control
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 thermostat_control:
-  home:
-    proximity_zone: home
-    thermostat: kitchen
-    schedule:
+  home:                     required: use to specify the friendly name of the
+                                      control entity
+    schedule:               required:
       - '07:00': 21.5
       - '07:15': 22.5
       - '07:30': 23.5
@@ -16,9 +15,21 @@ thermostat_control:
       - '23:00': 01.5
       - '23:15': 02.5
       - '23:45': 04.5
-    max_temp: 26
-    dist_offset: 0.1
-    away_distance: 50
+    thermostat: kitchen     optional: only required if more then one thermostat
+                                      exists
+    max_temp: 26            optional: set the failsafe temperature the
+                                      thermostat will not exceed
+    dist_offset: 0.1        optional: omit to remove all proximity based
+                                      control.
+                                      if used, the value is the offset per km
+                                      which will be applied to the schedule
+                                      temperature based on the proximity of the
+                                      nearest tracked device to the thermostat
+    proximity: home         optional: use if monitoring proximity AND more than
+                                      one proximitiy entity exists 
+    away_distance: 50       optional: use if monitoring proximity to set the
+                                      distance after which the thermostat will
+                                      be put into away mode 
 """
 
 import logging
@@ -30,7 +41,6 @@ from homeassistant.helpers.event import track_point_in_time
 from homeassistant.helpers.entity import Entity
 import homeassistant.util.dt as dt_util
 
-
 DEPENDENCIES = ['thermostat', 'proximity']
 
 # domain for the component
@@ -38,10 +48,7 @@ DOMAIN = 'thermostat_control'
 
 # default control values
 DEFAULT_OFFSET = 0
-DEFAULT_AWAY = 50
-
-# default zone
-DEFAULT_PROX_ZONE = 'not_set'
+DEFAULT_AWAY = 999999
 
 # entity attributes
 ATTR_SCHEDULE_START = 'active_from'
@@ -65,39 +72,79 @@ def setup(hass, config):
 
     thermostat_controls = []
 
+    # no config found
     if config.get(DOMAIN) is None:
         return False
 
     for control_location, control_config in config[DOMAIN].items():
-        if 'thermostat' not in control_config:
-            _LOGGER.error('no thermostat in config')
-            continue
-
+        proximity_zone = "not set"
+        
+        # no schedule found
         if 'schedule' not in control_config:
             _LOGGER.error('no time schedule in config')
             continue
 
-        thermostat_entity = 'thermostat.' + control_config.get('thermostat')
-        if thermostat_entity not in hass.states.entity_ids('thermostat'):
-            _LOGGER.error('thermostat_entity not found')
+        # HA does not have a thermostat
+        if len(hass.states.entity_ids('thermostat')) == 0:
+            _LOGGER.error('HA does not have any thermostats')
             continue
 
-        proximity_zone = 'proximity.' + control_config.get('proximity_zone',
-                                                           DEFAULT_PROX_ZONE)
-        if proximity_zone not in hass.states.entity_ids('proximity'):
-            _LOGGER.error('proximity_entity not found')
-            continue
-        _LOGGER.error('proximity_zone: %s', proximity_zone)
+        # a single thermostat has been found therefore we can default to it
+        if len(hass.states.entity_ids('thermostat')) == 1:
+            thermostat_entity = hass.states.entity_ids('thermostat')
+            _LOGGER.error('thermostat found: %s', thermostat_entity)
 
-        state = hass.states.get(thermostat_entity)
-        thermostat_friendly_name = (state.name).lower()
-        _LOGGER.error('thermostat_friendly_name: %s', thermostat_friendly_name)
 
-        dist_offset = control_config.get('dist_offset', DEFAULT_OFFSET)
-        _LOGGER.error('dist_offset: %s', dist_offset)
+        # multiple thermostats exist - we need one from the config file
+        if len(hass.states.entity_ids('thermostat')) > 1:
+            if 'thermostat' not in control_config:
+                _LOGGER.error('no thermostat in config')
+                continue
 
-        away_distance = control_config.get('away_distance', DEFAULT_AWAY)
-        _LOGGER.error('away_distance: %s', away_distance)
+            thermostat_entity = ('thermostat.' +
+                                 control_config.get('thermostat'))
+
+            if thermostat_entity not in hass.states.entity_ids('thermostat'):
+                _LOGGER.error('thermostat_entity not found')
+                continue
+
+            _LOGGER.error('thermostat_entity found: %s', thermostat_entity)
+
+        # add proximity based control if values appear in the config
+        if 'dist_offset' in control_config:
+            # HA does not have a proximity_zone
+            if len(hass.states.entity_ids('proximity')) == 0:
+                _LOGGER.error('HA does not have any proximity_zones')
+                continue
+
+            # a single proximity_zone has been found so default to it
+            if len(hass.states.entity_ids('proximity')) == 1:
+                proximity_zone = hass.states.entity_ids('proximity')
+                _LOGGER.error('single proximity zone found: %s',
+                              proximity_zone)
+
+            # multiple thermostats exist - we need one from the config file
+            if len(hass.states.entity_ids('proximity')) > 1:
+                if 'proximity' not in control_config:
+                    _LOGGER.error('no proximity in config')
+                    continue
+
+                proximity_zone = ('proximity.' +
+                                  control_config.get('proximity'))
+                if proximity_zone not in hass.states.entity_ids('proximity'):
+                    proximity_zone = "not set"
+                    _LOGGER.error('proximity_entity not found')
+                continue
+            
+            _LOGGER.error('proximity_zone entity found: %s', proximity_zone)
+
+            # set the temperature offset to be applied based on proximity
+            dist_offset = control_config.get('dist_offset', DEFAULT_OFFSET)
+            _LOGGER.error('dist_offset: %s', dist_offset)
+
+            # set the distance to set the thermostat into away mode
+            away_distance = control_config.get('away_distance', DEFAULT_AWAY)
+            _LOGGER.error('away_distance: %s', away_distance)
 
         entity_id = DOMAIN + '.' + control_location
         _LOGGER.error('entity_id: %s', entity_id)
@@ -106,9 +153,8 @@ def setup(hass, config):
         _LOGGER.error('name: %s', friendly_name)
 
         control_schedule = {}
-        for each_entry in control_config['schedule']:
-            for each_time in each_entry:
-                control_schedule[each_time] = each_entry.get(each_time)
+        for each_time in control_config['schedule']:
+            control_schedule[each_time] = control_config.get(each_time)
 
         thermostat_control = Thermostatcontrol(hass, thermostat_entity,
                                                dist_offset, away_distance,
@@ -119,12 +165,6 @@ def setup(hass, config):
         thermostat_control.update_ha_state()
         thermostat_controls.append(thermostat_control)
         thermostat_control.check_initial_state()
-
-        # setup the proximity trigger
-        if not proximity_zone == 'not_set':
-            track_state_change(hass, thermostat_control.proximity_zone,
-                               thermostat_control.check_proximity_change)
-            _LOGGER.error('proximity trigger added: %s', proximity_zone)
 
         # setup the schedule triggers
         for each_time in control_schedule:
@@ -144,6 +184,12 @@ def setup(hass, config):
         track_state_change(hass, thermostat_control.thermostat_entity,
                            thermostat_control.check_thermostat_change)
         _LOGGER.error('thermostat trigger added: %s', thermostat_entity)
+
+        # setup the proximity trigger if required
+        if not proximity_zone == "not set":
+            track_state_change(hass, thermostat_control.proximity_zone,
+                               thermostat_control.check_proximity_change)
+            _LOGGER.error('proximity trigger added: %s', proximity_zone)
 
     if not thermostat_controls:
         _LOGGER.error('No controls defined')
