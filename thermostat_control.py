@@ -33,7 +33,7 @@ thermostat_control:
 """
 
 import logging
-from datetime import timedelta
+import datetime
 import time
 from homeassistant.helpers.event import track_state_change
 from homeassistant.helpers.event import track_time_change
@@ -92,7 +92,7 @@ def setup(hass, config):
         # a single thermostat has been found therefore we can default to it
         if len(hass.states.entity_ids('thermostat')) == 1:
             thermostat_entity = hass.states.entity_ids('thermostat')
-            _LOGGER.error('thermostat found: %s', thermostat_entity)
+            _LOGGER.info('thermostat found: %s', thermostat_entity)
 
 
         # multiple thermostats exist - we need one from the config file
@@ -108,7 +108,7 @@ def setup(hass, config):
                 _LOGGER.error('thermostat_entity not found')
                 continue
 
-            _LOGGER.error('thermostat_entity found: %s', thermostat_entity)
+            _LOGGER.info('thermostat_entity found: %s', thermostat_entity)
 
         # add proximity based control if values appear in the config
         if 'dist_offset' in control_config:
@@ -120,7 +120,7 @@ def setup(hass, config):
             # a single proximity_zone has been found so default to it
             if len(hass.states.entity_ids('proximity')) == 1:
                 proximity_zone = hass.states.entity_ids('proximity')
-                _LOGGER.error('single proximity zone found: %s',
+                _LOGGER.info('single proximity zone found: %s',
                               proximity_zone)
 
             # multiple thermostats exist - we need one from the config file
@@ -136,25 +136,27 @@ def setup(hass, config):
                     _LOGGER.error('proximity_entity not found')
                 continue
             
-            _LOGGER.error('proximity_zone entity found: %s', proximity_zone)
+            _LOGGER.info('proximity_zone entity found: %s', proximity_zone)
 
             # set the temperature offset to be applied based on proximity
             dist_offset = control_config.get('dist_offset', DEFAULT_OFFSET)
-            _LOGGER.error('dist_offset: %s', dist_offset)
+            _LOGGER.info('dist_offset: %s', dist_offset)
 
             # set the distance to set the thermostat into away mode
             away_distance = control_config.get('away_distance', DEFAULT_AWAY)
-            _LOGGER.error('away_distance: %s', away_distance)
+            _LOGGER.info('away_distance: %s', away_distance)
 
         entity_id = DOMAIN + '.' + control_location
-        _LOGGER.error('entity_id: %s', entity_id)
+        _LOGGER.info('entity_id: %s', entity_id)
 
         friendly_name = control_location
-        _LOGGER.error('name: %s', friendly_name)
+        _LOGGER.info('name: %s', friendly_name)
 
         control_schedule = {}
-        for each_time in control_config['schedule']:
-            control_schedule[each_time] = control_config.get(each_time)
+        for each_entry in control_config.get('schedule'):
+            for each_time, each_temp in each_entry.items():
+                control_schedule[each_time] = each_temp
+                _LOGGER.info('time: %s temp: %s', each_time, each_temp)
 
         thermostat_control = Thermostatcontrol(hass, thermostat_entity,
                                                dist_offset, away_distance,
@@ -177,19 +179,19 @@ def setup(hass, config):
                               hour=each_time.hour,
                               minute=each_time.minute,
                               second=each_time.second)
-            _LOGGER.error('time trigger added: time:%s hour:%s minute:%s',
-                          each_time, each_time.hour, each_time.minute)
+        
+        _LOGGER.info('time trigger added: %s triggers', len(control_schedule))
 
         # setup the thermostat trigger
         track_state_change(hass, thermostat_control.thermostat_entity,
                            thermostat_control.check_thermostat_change)
-        _LOGGER.error('thermostat trigger added: %s', thermostat_entity)
+        _LOGGER.info('thermostat trigger added: %s', thermostat_entity)
 
         # setup the proximity trigger if required
         if not proximity_zone == "not set":
             track_state_change(hass, thermostat_control.proximity_zone,
                                thermostat_control.check_proximity_change)
-            _LOGGER.error('proximity trigger added: %s', proximity_zone)
+            _LOGGER.info('proximity trigger added: %s', proximity_zone)
 
     if not thermostat_controls:
         _LOGGER.error('No controls defined')
@@ -310,7 +312,7 @@ class Thermostatcontrol(Entity):
                     str(trigger_time.minute).zfill(2))
 
         if now_time not in self.control_schedule:
-            _LOGGER.info('time: trigger not found in schedule:%s',
+            _LOGGER.error('time: trigger not found in schedule:%s',
                          trigger_time)
             _LOGGER.info('schedule change: no action: time not found '
                          'in schedule')
@@ -321,16 +323,14 @@ class Thermostatcontrol(Entity):
 
         # get the next schedule change time
         count_previous = -10000000
-        now_time = time.mktime(time.strptime(now_time, "%H:%M"))
+        now_time = time.mktime(time.strptime('00:' + now_time, "%y:%H:%M"))
         for each_entry in self.control_schedule:
-            compare_time = time.mktime(time.strptime(each_entry, "%H:%M"))
+            compare_time = time.mktime(time.strptime('00:' + each_entry, "%y:%H:%M"))
             time_diff = now_time - compare_time
-            # _LOGGER.info('time_diff: %s', time_diff)
 
             if time_diff > count_previous and time_diff < 0:
                 count_previous = time_diff
                 schedule_next = each_entry
-                # _LOGGER.info('time: previous:%s', schedule_next)
         _LOGGER.info('time: closest next:%s', schedule_next)
 
         self.schedule_next = schedule_next
@@ -390,7 +390,7 @@ class Thermostatcontrol(Entity):
         reset_time = dt_util.now() + timedelta(hours=1)
         track_point_in_time(self.hass, self.reset_override,
                             reset_time)
-        _LOGGER.error('override trigger added: %s', reset_time)
+        _LOGGER.info('override trigger added: %s', reset_time)
 
         # manual thermostat change overrides all settings
         reset_time = str(reset_time.hour) + ':' + str(reset_time.minute)
@@ -424,23 +424,20 @@ class Thermostatcontrol(Entity):
         # pylint: disable=too-many-branches,too-many-statements,too-many-locals
         """ Function to populate entity on startup """
         now_time = str(dt_util.now().hour) + ':' + str(dt_util.now().minute)
-        now_time = time.mktime(time.strptime(now_time, "%H:%M"))
-
+        now_time = time.mktime(time.strptime('00:' + now_time, "%y:%H:%M"))
+        
         count_previous = -10000000
         count_next = 10000000
         for each_entry in self.control_schedule:
-            compare_time = time.mktime(time.strptime(each_entry, "%H:%M"))
+            compare_time = time.mktime(time.strptime('00:' + each_entry, "%y:%H:%M"))
             time_diff = now_time - compare_time
-            # _LOGGER.info('time_diff: %s', time_diff)
 
             if time_diff < count_next and time_diff > 0:
                 count_next = time_diff
                 schedule_previous = each_entry
-                # _LOGGER.info('time: next:%s', schedule_previous)
             if time_diff > count_previous and time_diff < 0:
                 count_previous = time_diff
                 schedule_next = each_entry
-                # _LOGGER.info('time: previous:%s', schedule_next)
         _LOGGER.info('time: closest next:%s', schedule_next)
         _LOGGER.info('time: closest previous:%s', schedule_previous)
 
