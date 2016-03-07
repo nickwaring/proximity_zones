@@ -26,14 +26,14 @@ thermostat_control:
                                       temperature based on the proximity of the
                                       nearest tracked device to the thermostat
     proximity: home         optional: use if monitoring proximity AND more than
-                                      one proximitiy entity exists 
+                                      one proximitiy entity exists
     away_distance: 50       optional: use if monitoring proximity to set the
                                       distance after which the thermostat will
-                                      be put into away mode 
+                                      be put into away mode
 """
 
 import logging
-import datetime
+from datetime import timedelta
 import time
 from homeassistant.helpers.event import track_state_change
 from homeassistant.helpers.event import track_time_change
@@ -67,7 +67,7 @@ _LOGGER = logging.getLogger(__name__)
 
 def setup(hass, config):
     # pylint: disable=too-many-locals,too-many-return-statements,
-    # pylint: disable=too-many-statements
+    # pylint: disable=too-many-statements,too-many-branches
     """ get the zones and offsets from configuration.yaml"""
 
     thermostat_controls = []
@@ -78,7 +78,7 @@ def setup(hass, config):
 
     for control_location, control_config in config[DOMAIN].items():
         proximity_zone = "not set"
-        
+
         # no schedule found
         if 'schedule' not in control_config:
             _LOGGER.error('no time schedule in config')
@@ -93,7 +93,6 @@ def setup(hass, config):
         if len(hass.states.entity_ids('thermostat')) == 1:
             thermostat_entity = hass.states.entity_ids('thermostat')
             _LOGGER.info('thermostat found: %s', thermostat_entity)
-
 
         # multiple thermostats exist - we need one from the config file
         if len(hass.states.entity_ids('thermostat')) > 1:
@@ -121,7 +120,7 @@ def setup(hass, config):
             if len(hass.states.entity_ids('proximity')) == 1:
                 proximity_zone = hass.states.entity_ids('proximity')
                 _LOGGER.info('single proximity zone found: %s',
-                              proximity_zone)
+                             proximity_zone)
 
             # multiple thermostats exist - we need one from the config file
             if len(hass.states.entity_ids('proximity')) > 1:
@@ -135,7 +134,7 @@ def setup(hass, config):
                     proximity_zone = "not set"
                     _LOGGER.error('proximity_entity not found')
                 continue
-            
+
             _LOGGER.info('proximity_zone entity found: %s', proximity_zone)
 
             # set the temperature offset to be applied based on proximity
@@ -179,7 +178,7 @@ def setup(hass, config):
                               hour=each_time.hour,
                               minute=each_time.minute,
                               second=each_time.second)
-        
+
         _LOGGER.info('time trigger added: %s triggers', len(control_schedule))
 
         # setup the thermostat trigger
@@ -224,8 +223,6 @@ class Thermostatcontrol(Entity):
         self.offset_temp = 0
         self.manual_override = 'not set'
         self.manual_override_end = 'not set'
-
-        
 
     @property
     def state(self):
@@ -313,7 +310,7 @@ class Thermostatcontrol(Entity):
 
         if now_time not in self.control_schedule:
             _LOGGER.error('time: trigger not found in schedule:%s',
-                         trigger_time)
+                          trigger_time)
             _LOGGER.info('schedule change: no action: time not found '
                          'in schedule')
             return
@@ -325,7 +322,8 @@ class Thermostatcontrol(Entity):
         count_previous = -10000000
         now_time = time.mktime(time.strptime('00:' + now_time, "%y:%H:%M"))
         for each_entry in self.control_schedule:
-            compare_time = time.mktime(time.strptime('00:' + each_entry, "%y:%H:%M"))
+            compare_time = time.mktime(time.strptime('00:' +
+                                                     each_entry, "%y:%H:%M"))
             time_diff = now_time - compare_time
 
             if time_diff > count_previous and time_diff < 0:
@@ -425,11 +423,12 @@ class Thermostatcontrol(Entity):
         """ Function to populate entity on startup """
         now_time = str(dt_util.now().hour) + ':' + str(dt_util.now().minute)
         now_time = time.mktime(time.strptime('00:' + now_time, "%y:%H:%M"))
-        
+
         count_previous = -10000000
         count_next = 10000000
         for each_entry in self.control_schedule:
-            compare_time = time.mktime(time.strptime('00:' + each_entry, "%y:%H:%M"))
+            compare_time = time.mktime(time.strptime('00:' +
+                                                     each_entry, "%y:%H:%M"))
             time_diff = now_time - compare_time
 
             if time_diff < count_next and time_diff > 0:
