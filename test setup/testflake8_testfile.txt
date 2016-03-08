@@ -1,0 +1,25 @@
+tests/components/test_thermostat_control.py:8:1: F401 'ha' imported but unused
+tests/components/test_thermostat_control.py:9:1: F401 'os' imported but unused
+tests/components/test_thermostat_control.py:11:1: E265 block comment should start with '# '
+tests/components/test_thermostat_control.py:12:1: E265 block comment should start with '# '
+tests/components/test_thermostat_control.py:13:1: F401 'dt_util' imported but unused
+tests/components/test_thermostat_control.py:14:1: E265 block comment should start with '# '
+tests/components/test_thermostat_control.py:16:1: F401 'timedelta' imported but unused
+tests/components/test_thermostat_control.py:17:1: F401 'time' imported but unused
+tests/components/test_thermostat_control.py:19:1: E302 expected 2 blank lines, found 1
+tests/components/test_thermostat_control.py:51:1: W293 blank line contains whitespace
+tests/components/test_thermostat_control.py:55:1: W293 blank line contains whitespace
+tests/components/test_thermostat_control.py:59:24: E231 missing whitespace after ':'
+tests/components/test_thermostat_control.py:76:62: W291 trailing whitespace
+tests/components/test_thermostat_control.py:89:1: W293 blank line contains whitespace
+tests/components/test_thermostat_control.py:93:24: E231 missing whitespace after ':'
+tests/components/test_thermostat_control.py:97:18: W291 trailing whitespace
+tests/components/test_thermostat_control.py:100:1: W293 blank line contains whitespace
+tests/components/test_thermostat_control.py:104:24: E231 missing whitespace after ':'
+tests/components/test_thermostat_control.py:113:18: W291 trailing whitespace
+tests/components/test_thermostat_control.py:116:1: W293 blank line contains whitespace
+tests/components/test_thermostat_control.py:120:24: E231 missing whitespace after ':'
+tests/components/test_thermostat_control.py:129:18: W291 trailing whitespace
+tests/components/test_thermostat_control.py:132:1: W293 blank line contains whitespace
+tests/components/test_thermostat_control.py:136:24: E231 missing whitespace after ':'
+tests/components/test_thermostat_control.py:147:11: W291 trailing whitespace
