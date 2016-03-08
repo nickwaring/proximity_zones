@@ -57,8 +57,6 @@ class TestThermostatControl:
         assert thermostat_control.setup(self.hass, {
             'thermostat_control': {
                 'test1':{
-                    'proximity_zone': 'test1',
-                    'thermostat': 'test1',
                     'schedule': {
                         '07:00': 21.5,
                         '10:15': 34.5,
@@ -68,20 +66,7 @@ class TestThermostatControl:
                     'max_temp': 26,
                     'dist_offset': 0.1,
                     'away_distance': 50
-                },
-                'test2':{
-                    'proximity_zone': 'test2',
-                    'thermostat': 'test2',
-                    'schedule': {
-                        '09:00': 21.5,
-                        '12:15': 14.5,
-                        '17:45': 23.5,
-                        '18:45': 20.5
-                    },
-                    'max_temp': 24,
-                    'dist_offset': 0.5,
-                    'away_distance': 30
-                }                
+                }
             }
         })
 
@@ -102,30 +87,10 @@ class TestThermostatControl:
         assert not thermostat_control.setup(self.hass, {
         })
         
-    def test_no_thermostat_in_config(self):
-        assert not thermostat_control.setup(self.hass, {
-            'thermostat_control': {
-                'test1':{
-                    'proximity_zone': 'test1',
-                    'schedule': {
-                        '07:00': 21.5,
-                        '10:15': 34.5,
-                        '15:45': 33.5,
-                        '16:45': 40.5
-                    },
-                    'max_temp': 26,
-                    'dist_offset': 0.1,
-                    'away_distance': 50
-                }                
-            }
-        })
-        
     def test_no_schedule_in_config(self):
         assert not thermostat_control.setup(self.hass, {
             'thermostat_control': {
                 'test1':{
-                    'proximity_zone': 'test1',
-                    'thermostat': 'test1',
                     'max_temp': 26,
                     'dist_offset': 0.1,
                     'away_distance': 50
@@ -133,30 +98,10 @@ class TestThermostatControl:
             }
         })
         
-    def test_no_proximity_zone_in_config(self):
-        assert thermostat_control.setup(self.hass, {
-            'thermostat_control': {
-                'test1':{
-                    'thermostat': 'test1',
-                    'schedule': {
-                        '07:00': 21.5,
-                        '10:15': 34.5,
-                        '15:45': 33.5,
-                        '16:45': 40.5
-                    },
-                    'max_temp': 26,
-                    'dist_offset': 0.1,
-                    'away_distance': 50
-                }              
-            }
-        })
-        
     def test_no_max_temp_in_config(self):
         assert thermostat_control.setup(self.hass, {
             'thermostat_control': {
                 'test1':{
-                    'proximity_zone': 'test1',
-                    'thermostat': 'test1',
                     'schedule': {
                         '07:00': 21.5,
                         '10:15': 34.5,
@@ -173,8 +118,6 @@ class TestThermostatControl:
         assert thermostat_control.setup(self.hass, {
             'thermostat_control': {
                 'test1':{
-                    'proximity_zone': 'test1',
-                    'thermostat': 'test1',
                     'schedule': {
                         '07:00': 21.5,
                         '10:15': 34.5,
@@ -187,30 +130,10 @@ class TestThermostatControl:
             }
         })
     
-    def test_no_dist_offset_in_config(self):
-        assert thermostat_control.setup(self.hass, {
-            'thermostat_control': {
-                'test1':{
-                    'proximity_zone': 'test1',
-                    'thermostat': 'test1',
-                    'schedule': {
-                        '07:00': 21.5,
-                        '10:15': 34.5,
-                        '15:45': 33.5,
-                        '16:45': 40.5
-                    },
-                    'max_temp': 26,
-                    'away_distance': 50
-                }
-            }
-        })
-
     def test_no_away_distance_in_config(self):
         assert thermostat_control.setup(self.hass, {
             'thermostat_control': {
                 'test1':{
-                    'proximity_zone': 'test1',
-                    'thermostat': 'test1',
                     'schedule': {
                         '07:00': 21.5,
                         '10:15': 34.5,
