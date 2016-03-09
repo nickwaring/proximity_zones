@@ -109,41 +109,39 @@ def setup(hass, config):
 
             _LOGGER.info('thermostat_entity found: %s', thermostat_entity)
 
-        # add proximity based control if values appear in the config
-        if 'dist_offset' in control_config:
-            # HA does not have a proximity_zone
-            if len(hass.states.entity_ids('proximity')) == 0:
-                _LOGGER.error('HA does not have any proximity_zones')
+        # HA does not have a proximity_zone
+        if len(hass.states.entity_ids('proximity')) == 0:
+            _LOGGER.error('HA does not have any proximity_zones')
+            continue
+
+        # a single proximity_zone has been found so default to it
+        if len(hass.states.entity_ids('proximity')) == 1:
+            proximity_zone = hass.states.entity_ids('proximity')
+            _LOGGER.info('single proximity zone found: %s',
+                         proximity_zone)
+
+        # multiple thermostats exist - we need one from the config file
+        if len(hass.states.entity_ids('proximity')) > 1:
+            if 'proximity' not in control_config:
+                _LOGGER.error('no proximity in config')
                 continue
 
-            # a single proximity_zone has been found so default to it
-            if len(hass.states.entity_ids('proximity')) == 1:
-                proximity_zone = hass.states.entity_ids('proximity')
-                _LOGGER.info('single proximity zone found: %s',
-                             proximity_zone)
+            proximity_zone = ('proximity.' +
+                              control_config.get('proximity'))
+            if proximity_zone not in hass.states.entity_ids('proximity'):
+                proximity_zone = "not set"
+                _LOGGER.error('proximity_entity not found')
+            continue
 
-            # multiple thermostats exist - we need one from the config file
-            if len(hass.states.entity_ids('proximity')) > 1:
-                if 'proximity' not in control_config:
-                    _LOGGER.error('no proximity in config')
-                    continue
+        _LOGGER.info('proximity_zone entity found: %s', proximity_zone)
 
-                proximity_zone = ('proximity.' +
-                                  control_config.get('proximity'))
-                if proximity_zone not in hass.states.entity_ids('proximity'):
-                    proximity_zone = "not set"
-                    _LOGGER.error('proximity_entity not found')
-                continue
+        # set the temperature offset to be applied based on proximity
+        dist_offset = control_config.get('dist_offset', DEFAULT_OFFSET)
+        _LOGGER.info('dist_offset: %s', dist_offset)
 
-            _LOGGER.info('proximity_zone entity found: %s', proximity_zone)
-
-            # set the temperature offset to be applied based on proximity
-            dist_offset = control_config.get('dist_offset', DEFAULT_OFFSET)
-            _LOGGER.info('dist_offset: %s', dist_offset)
-
-            # set the distance to set the thermostat into away mode
-            away_distance = control_config.get('away_distance', DEFAULT_AWAY)
-            _LOGGER.info('away_distance: %s', away_distance)
+        # set the distance to set the thermostat into away mode
+        away_distance = control_config.get('away_distance', DEFAULT_AWAY)
+        _LOGGER.info('away_distance: %s', away_distance)
 
         entity_id = DOMAIN + '.' + control_location
         _LOGGER.info('entity_id: %s', entity_id)
@@ -152,10 +150,9 @@ def setup(hass, config):
         _LOGGER.info('name: %s', friendly_name)
 
         control_schedule = {}
-        for each_entry in control_config.get('schedule'):
-            for each_time, each_temp in each_entry.items():
-                control_schedule[each_time] = each_temp
-                _LOGGER.info('time: %s temp: %s', each_time, each_temp)
+        for each_time, each_temp in control_config.get('schedule').items():
+            control_schedule[each_time] = each_temp
+            _LOGGER.info('time: %s temp: %s', each_time, each_temp)
 
         thermostat_control = Thermostatcontrol(hass, thermostat_entity,
                                                dist_offset, away_distance,

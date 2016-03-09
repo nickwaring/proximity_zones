@@ -74,13 +74,13 @@ class TestThermostatControl:
         assert state.state != 'not set'
         assert state.attributes.get('next_change') != 'not set'
         assert state.attributes.get('away_mode') != 'not set'       
-        assert state.attributes.get('manual_override_end') != 'not set'
-        assert state.attributes.get('offset_temp') != 'not set'
-        assert state.attributes.get('unit_of_measurement') != 'not set'
+        assert state.attributes.get('manual_override_end') == 'not set'
+        assert state.attributes.get('offset_temp') == 0
+        assert state.attributes.get('unit_of_measurement') == '°C'
         assert state.attributes.get('active_from') != 'not set'
         assert state.attributes.get('manual_override') != 'not set'
         assert state.attributes.get('schedule_temp') != 'not set'
-        assert state.attributes.get('friendly_name') != 'not set'
+        assert state.attributes.get('friendly_name') == 'test1'
         assert state.attributes.get('set_temp') != 'not set'
 
     def test_no_config(self):
