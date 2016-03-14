@@ -50,6 +50,9 @@ class TestThermostatControl:
                 
     def teardown_method(self, method):
         # function which removes things it's called between tests?
+        """ indeed, the setup_method is called before each test """
+        """ this method is called after each test, it will stop the HA """
+        """ from the test so you can start with a blank version each time """
         self.hass.stop()
     
   	# test that the compnoent creates successfully
@@ -95,12 +98,19 @@ class TestThermostatControl:
 				
 				# where are the tests in the current version?
 				# component should exit gracefully
-				
+        """ wrong, the setup will fail, see line 77, it will return False """
+        
+        
   	# tests what happens if the schedule component is missing
     def test_no_schedule_in_config(self):
 				# mimic no schedule entry in config.yaml  
         assert not thermostat_control.setup(self.hass, {
 				# assert not?
+        """ 'assert A' will check if A is true """
+        """ 'assert not A' will check if A is false """
+        """ basically, we know that the setup will return False if there is """
+        """ no schedule in the config, so we know this setup must fail, """
+        """ that's why we use 'assert not' here """
             'thermostat_control': {
                 'test1':{
                     'max_temp': 26,
@@ -112,6 +122,11 @@ class TestThermostatControl:
         
 				# where are the tests in the current version?
 				# component should exit gracefully
+        state = self.hass.states.get('thermostat_control.test1')
+        assert state == None
+        """ we ask HA for the state of the thermostat_control """
+        """ that state will be none, because the thermostat_control doesn't """
+        """ exist even though the setup didn't fail """
 				
     def test_no_max_temp_in_config(self):
 				# mimic no max temp entry in config.yaml  
@@ -134,7 +149,7 @@ class TestThermostatControl:
 				# component should be created successfully
 				assert state.state != 'some value'
         assert state.attributes.get('some_attribute') != 'expected_state'
-				
+        
     def test_no_dist_offset_in_config(self):
         # mimic no distance offset entry in config.yaml  
 				assert thermostat_control.setup(self.hass, {
