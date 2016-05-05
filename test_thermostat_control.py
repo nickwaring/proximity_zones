@@ -5,18 +5,10 @@ tests.components.proximity_zones
 Tests proximity_zones component.
 """
 # import the dependencies
-# import homeassistant.core as ha
-# import os
+import unittest
 from homeassistant.components import thermostat_control
 import homeassistant.util.dt as dt_util
-import homeassistant.core as ha
-import datetime as dt
 from tests.common import get_test_home_assistant, fire_time_changed
-import unittest
-
-from datetime import datetime
-#from astral import Astral
-from homeassistant.helpers.event import *
 
 
 class TestThermostatControl(unittest.TestCase):
@@ -622,7 +614,7 @@ class TestThermostatControl(unittest.TestCase):
                 'nearest': 'Nick',
                 'unit_of_measurement': 'km'
             })
-            
+
         # mimic properly formatted config.yaml entry
         assert thermostat_control.setup(self.hass, {
             'thermostat_control': {
@@ -644,7 +636,10 @@ class TestThermostatControl(unittest.TestCase):
             }
         })
 
+        # get the state of the created entity
         state = self.hass.states.get('thermostat_control.test1')
+
+        # test the expected values of the entity
         self.assertEqual('20.5', state.state)
         self.assertEqual(20.5, state.attributes.get('set_temp'))
         self.assertEqual('16:45', state.attributes.get('active_from'))
@@ -653,30 +648,11 @@ class TestThermostatControl(unittest.TestCase):
         self.assertEqual(20.5, state.attributes.get('schedule_temp'))
         self.assertEqual(0, state.attributes.get('offset_temp'))
         self.assertEqual('off', state.attributes.get('manual_override'))
-        self.assertEqual('not set', state.attributes.get('manual_override_end'))
+        self.assertEqual('not set',
+                         state.attributes.get('manual_override_end'))
         self.assertEqual('°C', state.attributes.get('unit_of_measurement'))
         self.assertEqual('test1', state.attributes.get('friendly_name'))
 
-        # get the state of the created component
-        #state = self.hass.states.get('thermostat_control.test1')
-
-        # test the value of each of the created component  attributes
-        #assert state.state == '20.5'
-        #assert state.attributes.get('set_temp') == 20.5
-        #assert state.attributes.get('active_from') == '16:45'
-        #assert state.attributes.get('next_change') == '07:00'
-        #assert state.attributes.get('away_mode') == 'off'
-        #assert state.attributes.get('schedule_temp') == 20.5
-        #assert state.attributes.get('offset_temp') == 0
-        #assert state.attributes.get('manual_override') == 'off'
-        #assert state.attributes.get('manual_override_end') == 'not set'
-        #assert state.attributes.get('unit_of_measurement') == '°C'
-        #assert state.attributes.get('friendly_name') == 'test1'
-
-    def _send_time_changed(self, now):
-        """ Send a time changed event. """
-        self.hass.bus.fire(ha.EVENT_TIME_CHANGED, {ha.ATTR_NOW: now})
-        
     def test_thermostat_control_time_change_success(self):
         # setup a thermostat
         self.hass.states.set(
@@ -707,7 +683,7 @@ class TestThermostatControl(unittest.TestCase):
                 'nearest': 'Nick',
                 'unit_of_measurement': 'km'
             })
-      
+
         # mimic properly formatted config.yaml entry
         assert thermostat_control.setup(self.hass, {
             'thermostat_control': {
@@ -729,30 +705,22 @@ class TestThermostatControl(unittest.TestCase):
             }
         })
 
-        # set the time of HA to before the first schedule event
-        now_time = dt.datetime.strptime('11:30', '%H:%M').time()
-        now_datetime = dt.datetime.combine(dt_util.now().date(), now_time)
-        self._send_time_changed(now_datetime)
+        # set the time of HA
+        fire_time_changed(self.hass,
+                          dt_util.utcnow().replace(hour=11, minute=30))
         self.hass.pool.block_till_done()
-        
-        # or
-        #fire_time_changed(self.hass, dt_util.utcnow().replace(hour=11, minute=30))
-        self.assertEqual('24.4', self.hass.states.get('thermostat_control.test1').state)
-        
-        # get the state of the created component
-        #state = self.hass.states.get('thermostat_control.test1')
 
-        # test the value of each of the created component  attributes
-        #assert state.state == '20.5'
-        #assert state.attributes.get('set_temp') == 24.5
-        #assert state.attributes.get('active_from') == '10:15'
-        #assert state.attributes.get('next_change') == '15:45'
-        #assert state.attributes.get('away_mode') == 'off'
-        #assert state.attributes.get('schedule_temp') == 24.5
-        #assert state.attributes.get('offset_temp') == 0
-        #assert state.attributes.get('manual_override') == 'off'
-        #assert state.attributes.get('manual_override_end') == 'not set'
-        #assert state.attributes.get('unit_of_measurement') == '°C'
-        #assert state.attributes.get('friendly_name') == 'test1'
+        # get the state of the created entity
+        state = self.hass.states.get('thermostat_control.test1')
 
-        
+        # test the expected values of the entity
+        self.assertEqual('24.5', state.state)
+        self.assertEqual(24.5, state.attributes.get('set_temp'))
+        self.assertEqual('10:15', state.attributes.get('active_from'))
+        self.assertEqual('15:45', state.attributes.get('next_change'))
+        self.assertEqual('off', state.attributes.get('away_mode'))
+        self.assertEqual(24.5, state.attributes.get('schedule_temp'))
+        self.assertEqual(0, state.attributes.get('offset_temp'))
+        self.assertEqual('off', state.attributes.get('manual_override'))
+        self.assertEqual('not set',
+                         state.attributes.get('manual_override_end'))
