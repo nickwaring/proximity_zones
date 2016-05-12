@@ -19,9 +19,6 @@ class TestThermostatControl(unittest.TestCase):
 
     def teardown_method(self, method):
         # function which removes things it's called between tests?
-        """ indeed, the setup_method is called before each test """
-        """ this method is called after each test, it will stop the HA """
-        """ from the test so you can start with a blank version each time """
         self.hass.stop()
 
     # no config found
@@ -644,7 +641,6 @@ class TestThermostatControl(unittest.TestCase):
         self.assertEqual(20.5, state.attributes.get('set_temp'))
         self.assertEqual('16:45', state.attributes.get('active_from'))
         self.assertEqual('07:00', state.attributes.get('next_change'))
-        self.assertEqual('off', state.attributes.get('away_mode'))
         self.assertEqual(20.5, state.attributes.get('schedule_temp'))
         self.assertEqual(0, state.attributes.get('offset_temp'))
         self.assertEqual('off', state.attributes.get('manual_override'))
@@ -653,7 +649,7 @@ class TestThermostatControl(unittest.TestCase):
         self.assertEqual('°C', state.attributes.get('unit_of_measurement'))
         self.assertEqual('test1', state.attributes.get('friendly_name'))
 
-    def test_thermostat_control_time_change_success(self):
+    def test_thermostat_control_schedule_change(self):
         # setup a thermostat
         self.hass.states.set(
             'thermostat.test1', '25.5',
@@ -705,22 +701,97 @@ class TestThermostatControl(unittest.TestCase):
             }
         })
 
+        # ========= Time Change 1 =========
         # set the time of HA
         fire_time_changed(self.hass,
-                          dt_util.utcnow().replace(hour=11, minute=30))
+                          dt_util.utcnow().replace(hour=7, minute=0, second=0))
         self.hass.pool.block_till_done()
 
         # get the state of the created entity
         state = self.hass.states.get('thermostat_control.test1')
 
-        # test the expected values of the entity
-        self.assertEqual('24.5', state.state)
-        self.assertEqual(24.5, state.attributes.get('set_temp'))
-        self.assertEqual('10:15', state.attributes.get('active_from'))
-        self.assertEqual('15:45', state.attributes.get('next_change'))
-        self.assertEqual('off', state.attributes.get('away_mode'))
-        self.assertEqual(24.5, state.attributes.get('schedule_temp'))
+        # test the expected values of the thermostat_control entity
+        self.assertEqual('21.5', state.state)
+        self.assertEqual(21.5, state.attributes.get('set_temp'))
+        self.assertEqual('07:00', state.attributes.get('active_from'))
+        self.assertEqual('10:15', state.attributes.get('next_change'))
+        self.assertEqual(21.5, state.attributes.get('schedule_temp'))
         self.assertEqual(0, state.attributes.get('offset_temp'))
         self.assertEqual('off', state.attributes.get('manual_override'))
         self.assertEqual('not set',
                          state.attributes.get('manual_override_end'))
+
+        # test the value of the thermostat
+        state = self.hass.states.get('thermostat.test1')
+
+        # test the expected values of the thermostat entity
+        self.assertEqual('21.5', state.state)
+
+        # ========= Time Change 2 =========
+        # set the time of HA
+        fire_time_changed(self.hass,
+                          dt_util.utcnow().replace(hour=10, minute=15,
+                          second=0))
+        self.hass.pool.block_till_done()
+
+        # get the state of the created entity
+        state = self.hass.states.get('thermostat_control.test1')
+
+        # test the expected values of the thermostat_control entity
+        self.assertEqual('24.5', state.state)
+        self.assertEqual(24.5, state.attributes.get('set_temp'))
+        self.assertEqual('10:15', state.attributes.get('active_from'))
+        self.assertEqual('15:45', state.attributes.get('next_change'))
+        self.assertEqual(24.5, state.attributes.get('schedule_temp'))
+
+        # test the value of the thermostat
+        state = self.hass.states.get('thermostat.test1')
+
+        # test the expected values of the thermostat entity
+        self.assertEqual('24.5', state.state)
+
+        # ========= Time Change 3 =========
+        # set the time of HA
+        fire_time_changed(self.hass,
+                          dt_util.utcnow().replace(hour=15, minute=45,
+                          second=0))
+        self.hass.pool.block_till_done()
+
+        # get the state of the created entity
+        state = self.hass.states.get('thermostat_control.test1')
+
+        # test the expected values of the thermostat_control entity
+        self.assertEqual('23.5', state.state)
+        self.assertEqual(23.5, state.attributes.get('set_temp'))
+        self.assertEqual('15:45', state.attributes.get('active_from'))
+        self.assertEqual('16:45', state.attributes.get('next_change'))
+        self.assertEqual(23.5, state.attributes.get('schedule_temp'))
+
+        # test the value of the thermostat
+        state = self.hass.states.get('thermostat.test1')
+
+        # test the expected values of the thermostat entity
+        self.assertEqual('23.5', state.state)
+
+        # ========= Time Change 4 =========
+        # set the time of HA
+        fire_time_changed(self.hass,
+                          dt_util.utcnow().replace(hour=16, minute=45,
+                          second=0))
+        self.hass.pool.block_till_done()
+
+        # get the state of the created entity
+        state = self.hass.states.get('thermostat_control.test1')
+
+        # test the expected values of the thermostat_control entity
+        self.assertEqual('20.5', state.state)
+        self.assertEqual(20.5, state.attributes.get('set_temp'))
+        self.assertEqual('16:45', state.attributes.get('active_from'))
+        self.assertEqual('07:00', state.attributes.get('next_change'))
+        self.assertEqual(20.5, state.attributes.get('schedule_temp'))
+
+        # test the value of the thermostat
+        state = self.hass.states.get('thermostat.test1')
+
+        # test the expected values of the thermostat entity
+        self.assertEqual('20.5', state.state)
